@@ -53,6 +53,26 @@ Attempt to render a view, if needed.
 
 sub end : ActionClass('RenderView') {}
 
+sub auto :Private
+{
+	my ($self, $c) = @_;
+	srand();
+	$c->stash->{version}=$wf::VERSION;
+	if ($c->controller eq $c->controller('auth'))
+	{
+		return 1;
+	};
+
+	if (!$c->user_exists)
+	{
+		$c->response->redirect('/auth/login');
+		$c->flash->{redirect_after_login} = '' . $c->req->uri;
+		return 0;
+	};
+    
+	return 1;
+}
+
 =head1 AUTHOR
 
 Pushkinsv
