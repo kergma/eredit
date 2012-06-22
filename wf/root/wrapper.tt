@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="cache-control" content="no-cache">
+<title>[% heading %] [% heading and " - " %] [% template.title or "БД пользователей" %]</title>
+
+<!--
+<link rel="stylesheet" href="/css/blueprint/screen.css" type="text/css" media="screen, projection">
+<link rel="stylesheet" href="/css/blueprint/print.css" type="text/css" media="print">
+-->
+
+<link rel="stylesheet" href="[% c.uri_for('/css/hmenu.css') %]" />
+
+<!--[if IE]>
+<style type="text/css" media="screen">
+	#menu{float:none;} /* This is required for IE to avoid positioning bug when placing content first in source. */
+	/* IE Menu CSS */
+	/* csshover.htc file version: V1.21.041022 - Available for download from: http://www.xs4all.nl/~peterned/csshover.html */
+	body{behavior:url(/css/csshover3a.htc);
+	font-size:100%; /* to enable text resizing in IE */
+	}
+	#menu ul li{float:left;width:100%;}
+	#menu ul ul {top:100%;left:0;}
+</style>
+<![endif]-->
+
+</head>
+<body>
+	
+<div style="text-align:right;color:lightgray">[% version %]</div>
+
+<div id="menu">
+
+<div id="auth" style="float:right">
+	<div title="[% IF c.user.fio %][% c.user.full_name %][% END %][% IF c.user.roles %], &#10;[% c.user.roles.join(', ') %][% END %], &#10; [% c.user.souid %]">[% c.user.username %] (<a href="[% c.uri_for('/auth/logout') %]">Выход</a>)</div>
+</div>
+
+<ul>
+<li>Тест
+<ul>
+	<li><a href="/sys/test">тест</a></li>
+</ul>
+</li>
+</ul>
+
+</div><!-- end menu -->
+
+<div id="header">
+    [%# Insert the page title -%]
+    <!--<h1>[% template.title or site.title %]</h1>-->
+    <h1> [% heading or template.title or site.title %]</h1>
+</div>
+
+<div id="content">
+    [% IF error_msg %]<span class="error">[% error_msg %]</span>[% END %]
+    [%# This is where TT will stick all of your template's contents. -%]
+    [% content %]
+[% IF c.check_user_roles('Разработчик') %]
+<pre>
+[% data.dump %]
+</pre>
+[% END %][%# check_user_roles('Разработчик') %]
+</div><!-- end content -->
+
+<div id="footer">
+<br><img src="/rosinv-logo.png"/>
+</div>
+
+</body>
+</html>
