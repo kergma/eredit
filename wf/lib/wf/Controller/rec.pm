@@ -52,11 +52,12 @@ sub search:Local :Form
 
 	$c->stash->{data}={records=>$model->search_records(\%filter),f=>\%filter};
 	$c->stash->{data}->{records}->{display_}= {
-		recid=>'Запись',
+		recref=>'Запись',
 		defvalue=>'Определение',
 		rectype=>'Тип',
-		#order_=>[qw/recid defvalue rectype/],
+		order_=>[qw/recref defvalue rectype/],
 	};
+	$_->{recref}=qq(<a href="/rec/edit?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
 
 }
 
