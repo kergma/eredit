@@ -57,10 +57,55 @@ sub search:Local :Form
 		rectype=>'Тип',
 		order_=>[qw/recref defvalue rectype/],
 	};
-	$_->{recref}=qq(<a href="/rec/edit?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
+	$_->{recref}=qq(<a href="/rec/view?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
 
 }
 
+sub edit:Local:Form
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+
+	my $form=$self->formbuilder;
+	$c->stash->{heading}='Изменение записи';
+	my $data=$c->stash->{data}={rec=>$model->read_record($c->req->parameters->{id})};
+
+}
+
+sub view:Local
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+
+	my $data=$c->stash->{data}={
+		rec=>{
+			rows=>$model->read_record($c->req->parameters->{id}),
+			def=>$model->recdef($c->req->parameters->{id}),
+			display_=>{
+				v1=>'Значение',
+				r=>'Связь',
+				v2=>'Значение',
+				c1=>'Имя/значение',
+				c2=>'Имя/значение',
+				#order_=>[qw/v1 r v2/]
+				order_=>[qw/c1 c2/]
+			},
+		}
+	};
+	$c->stash->{heading}="$data->{rec}->{def}->{defvalue} ($data->{rec}->{def}->{rectype})";
+	foreach my $r (@{$data->{rec}->{rows}})
+	{
+		($r->{c1},$r->{c2})=grep {$_} (
+			$r->{v1} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v1}">$r->{refdef}</a>\:$r->{v1},
+			$r->{r},
+			$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
+		);
+	};
+	
+
+}
 
 =head1 AUTHOR
 
