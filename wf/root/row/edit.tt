@@ -1,0 +1,37 @@
+[%# vim: set filetype=tt2: -%]
+[%IF form%]
+[% form.start %]
+<input name="seltarget" type="hidden"></input>
+<input name="selaction" type="hidden" value="/row/edit?id=[%data.row.id%]"></input>
+<table>
+[% FOREACH field=form.fields %]
+<tr>
+<td>[% field.label %]</td>
+<td>[% field.readonly ? field.value : field.render %]
+[% IF field.recsel %]
+<a href="javascript:;" onclick="f=document.forms[0];f.seltarget.value='[%field.recsel.target%]';f.action='/rec/search?rectype=[%field.recsel.rectype%]';f.submit();">[% field.recsel.anchor %]</a>
+[% END %][%# recsel %]
+</td>
+</tr>
+[% END %]
+</table>
+[% form.submit %]
+[% form.end %]
+[%END%][%# form %]
+[%IF confirmation %]
+<form action="?id=[%data.row.id%]" method="POST">
+<div>
+[% IF confirmation=='update' %]
+Подтвердите сохранение изменений в строке [%data.row.id%]
+[% ELSIF confirmation=='delete' %]
+Подтвердите удаление строки [%data.row.id%]
+[% END %][%# save delete %]
+</div>
+<input type="submit" name="_submit" value="Подтвердить" onclick="[%IF confirmation=='delete' %]this.form.action='/row/delete?id=[%data.row.id%]';[%END%]this.form._submit.value = this.value;"/>
+<input type="submit" name="_submit" value="Отказаться" onclick="this.form._submit.value = this.value;"/>
+<input type="hidden" name="v1" value="[%data.p.v1%]"></input>
+<input type="hidden" name="r" value="[%data.p.r%]"></input>
+<input type="hidden" name="v2" value="[%data.p.v2%]"></input>
+</form>
+[%END%][%# confirmation %]
+[%msg%]

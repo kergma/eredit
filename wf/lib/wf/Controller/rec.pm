@@ -37,6 +37,7 @@ sub search:Local :Form
 	$c->stash->{heading}='Выбор записи';
 
 	$form->selectnum(0);
+	$form->field(name => 'selection', type=>'hidden');
 	$form->field(name => 'recid', label=>'Запись');
 	$form->field(name => 'defvalue', label=>'Определение');
 	$form->field(name => 'rectype', label=>'Тип', options => $model->rectypes());
@@ -44,11 +45,13 @@ sub search:Local :Form
 	$form->submit('Выбрать');
 	$form->method('post');
 
-	my %filter;
+	my %filter=(_submitted=>0,_submit=>0);
 	$filter{recid}=$form->field('recid');
 	$filter{defvalue}=$form->field('defvalue');
 	$filter{rectype}=$form->field('rectype');
 	$filter{limit}=$form->field('limit');
+
+	$form->field(name => $_, value=>$c->req->{parameters}->{$_}, type=>'hidden') foreach grep {!defined $filter{$_}} keys %{$c->req->{parameters}};
 
 	$c->stash->{data}={records=>$model->search_records(\%filter),f=>\%filter};
 	$c->stash->{data}->{records}->{display_}= {
@@ -57,7 +60,16 @@ sub search:Local :Form
 		rectype=>'Тип',
 		order_=>[qw/recref defvalue rectype/],
 	};
-	$_->{recref}=qq(<a href="/rec/view?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
+	my $selaction=$c->req->{parameters}->{selaction};
+	if ($selaction)
+	{
+		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{recid}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
+	}
+	else
+	{
+		$_->{recref}=qq(<a href="/rec/view?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
+	};
+	$c->stash->{data}->{p}=$c->req->{parameters};
 
 }
 
@@ -78,22 +90,25 @@ sub view:Local
 	my ( $self, $c ) = @_;
 
 	my $model=$c->model;
+	my $id=$c->req->parameters->{id};
 
 	my $data=$c->stash->{data}={
 		rec=>{
-			rows=>$model->read_record($c->req->parameters->{id}),
-			def=>$model->recdef($c->req->parameters->{id}),
+			rows=>$model->read_record($id),
 			display_=>{
 				v1=>'Значение',
 				r=>'Связь',
 				v2=>'Значение',
 				c1=>'Имя/значение',
 				c2=>'Имя/значение',
+				e=>'Р',
+				d=>'У',
 				#order_=>[qw/v1 r v2/]
-				order_=>[qw/c1 c2/]
+				order_=>[qw/e d c1 c2/]
 			},
 		}
 	};
+	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
 	$c->stash->{heading}="$data->{rec}->{def}->{defvalue} ($data->{rec}->{def}->{rectype})";
 	foreach my $r (@{$data->{rec}->{rows}})
 	{
@@ -102,9 +117,8 @@ sub view:Local
 			$r->{r},
 			$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
 		);
+		$r->{e}=qq\<a href="/row/edit?id=$r->{id}">*</a>\;
 	};
-	
-
 }
 
 =head1 AUTHOR
