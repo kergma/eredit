@@ -55,19 +55,19 @@ sub search:Local :Form
 
 	$c->stash->{data}={records=>$model->search_records(\%filter),f=>\%filter};
 	$c->stash->{data}->{records}->{display_}= {
-		recref=>'Запись',
-		defvalue=>'Определение',
+		recref=>'Определение',
 		rectype=>'Тип',
-		order_=>[qw/recref defvalue rectype/],
+		recid=>'Запись',
+		order_=>[qw/recref rectype recid/],
 	};
 	my $selaction=$c->req->{parameters}->{selaction};
 	if ($selaction)
 	{
-		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{recid}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
 	}
 	else
 	{
-		$_->{recref}=qq(<a href="/rec/view?id=$_->{recid}">$_->{recid}</a>) foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{recref}=sprintf qq(<a href="/rec/view?id=$_->{recid}">%s</a>),$_->{defvalue}//'' foreach @{$c->stash->{data}->{records}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 
@@ -101,11 +101,13 @@ sub view:Local
 				v2=>'Значение',
 				c1=>'Имя/значение',
 				c2=>'Имя/значение',
-				e=>'Р',
-				d=>'У',
+				e=>'Ред',
 				#order_=>[qw/v1 r v2/]
-				order_=>[qw/e d c1 c2/]
+				order_=>[qw/e c1 c2/]
 			},
+		},
+		newrow=>{
+			text=>qq\<a href="/row/create?v2=$id&redir=/rec/view%3Fid=$id">Новая строка</a>\
 		}
 	};
 	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
@@ -117,7 +119,7 @@ sub view:Local
 			$r->{r},
 			$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
 		);
-		$r->{e}=qq\<a href="/row/edit?id=$r->{id}">*</a>\;
+		$r->{e}=qq\<a href="/row/edit?id=$r->{id}&redir=/rec/view%3Fid=$id">$r->{id}</a>\;
 	};
 }
 

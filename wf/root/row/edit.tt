@@ -2,7 +2,7 @@
 [%IF form%]
 [% form.start %]
 <input name="seltarget" type="hidden"></input>
-<input name="selaction" type="hidden" value="/row/edit?id=[%data.row.id%]"></input>
+<input name="selaction" type="hidden" value="/row/edit?[%query_string%]"></input>
 <table>
 [% FOREACH field=form.fields %]
 <tr>
@@ -19,7 +19,7 @@
 [% form.end %]
 [%END%][%# form %]
 [%IF confirmation %]
-<form action="?id=[%data.row.id%]" method="POST">
+<form action="?[%query_string%]" method="POST">
 <div>
 [% IF confirmation=='update' %]
 Подтвердите сохранение изменений в строке [%data.row.id%]
@@ -27,7 +27,7 @@
 Подтвердите удаление строки [%data.row.id%]
 [% END %][%# save delete %]
 </div>
-<input type="submit" name="_submit" value="Подтвердить" onclick="[%IF confirmation=='delete' %]this.form.action='/row/delete?id=[%data.row.id%]';[%END%]this.form._submit.value = this.value;"/>
+<input type="submit" name="_submit" value="Подтвердить" onclick="[%IF confirmation=='delete' %]this.form.action='/row/delete?[%query_string%]';[%END%]this.form._submit.value = this.value;"/>
 <input type="submit" name="_submit" value="Отказаться" onclick="this.form._submit.value = this.value;"/>
 <input type="hidden" name="v1" value="[%data.p.v1%]"></input>
 <input type="hidden" name="r" value="[%data.p.r%]"></input>
