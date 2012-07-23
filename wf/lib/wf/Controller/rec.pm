@@ -111,7 +111,8 @@ sub view:Local
 		}
 	};
 	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
-	$c->stash->{heading}="$data->{rec}->{def}->{defvalue} ($data->{rec}->{def}->{rectype})";
+	$data->{rec}->{text}=$id;
+	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
 	foreach my $r (@{$data->{rec}->{rows}})
 	{
 		($r->{c1},$r->{c2})=grep {$_} (
@@ -123,6 +124,15 @@ sub view:Local
 	};
 }
 
+sub create:Local
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+	my $id=$model->newid();
+	$c->response->headers->header(cache_control => "no-cache");
+	$c->response->redirect("/rec/view?id=$id",302);
+}
 =head1 AUTHOR
 
 Pushkinsv
