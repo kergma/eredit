@@ -42,7 +42,7 @@ sub login :Local :Form
             if ( $form->validate ) {
 		if ($c->authenticate({username=>$form->field('username'),password=>$form->field('password')}))
 		{
-			$c->response->redirect($c->uri_for('/'));
+			$c->response->redirect('/');
 			$c->response->redirect($c->flash->{redirect_after_login}) if defined $c->flash->{redirect_after_login};
 			return;
 		    $body.="authentication succeeded in default<br><pre>".Dumper($c);
