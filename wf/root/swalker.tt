@@ -46,3 +46,15 @@
 	[%- queue=q.merge(queue) -%]
 
 [%- END %]
+[%IF stash.reload and !stash.reloaded%]
+<script language="JavaScript" type="text/javascript">
+<!--
+window.onload=pageRefresh;
+function pageRefresh()
+{
+        setTimeout("window.location.reload()",[%stash.reload%]);
+}
+//-->
+</script>
+[%stash.reloaded="yes"%]
+[%END%]
