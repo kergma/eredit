@@ -54,11 +54,11 @@ sub search:Local :Form
 	$form->field(name => $_, value=>$c->req->{parameters}->{$_}, type=>'hidden') foreach grep {!defined $filter{$_}} keys %{$c->req->{parameters}};
 
 	$c->stash->{data}={records=>$model->search_records(\%filter),f=>\%filter};
-	$c->stash->{data}->{records}->{display_}= {
+	$c->stash->{data}->{records}->{display}= {
 		recref=>'Определение',
 		rectype=>'Тип',
 		recid=>'Запись',
-		order_=>[qw/recref rectype recid/],
+		order=>[qw/recref rectype recid/],
 	};
 	my $selaction=$c->req->{parameters}->{selaction};
 	if ($selaction)
@@ -70,6 +70,7 @@ sub search:Local :Form
 		$_->{recref}=sprintf qq(<a href="/rec/view?id=$_->{recid}">%s</a>),$_->{defvalue}//'' foreach @{$c->stash->{data}->{records}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
+	$c->stash->{display}={order=>[qw/formbuilder data/]};
 
 }
 
@@ -93,25 +94,25 @@ sub view:Local
 	my $id=$c->req->parameters->{id};
 
 	my $data=$c->stash->{data}={
+		id=>{text=>$id},
 		rec=>{
 			rows=>$model->read_record($id),
-			display_=>{
+			display=>{
 				v1=>'Значение',
 				r=>'Связь',
 				v2=>'Значение',
 				c1=>'Имя/значение',
 				c2=>'Имя/значение',
 				e=>'Ред',
-				#order_=>[qw/v1 r v2/]
-				order_=>[qw/e c1 c2/]
+				order=>[qw/e c1 c2/]
 			},
 		},
 		newrow=>{
 			text=>qq\<a href="/row/create?v2=$id&redir=/rec/view%3Fid=$id">Новая строка</a>\
-		}
+		},
+		display=>{order=>[qw/id rec newrow/]},
 	};
 	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
-	$data->{rec}->{text}=$id;
 	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
 	foreach my $r (@{$data->{rec}->{rows}})
 	{

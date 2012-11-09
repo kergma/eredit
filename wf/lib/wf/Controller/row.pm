@@ -106,7 +106,7 @@ sub edit :Local :Form
 	$form->field(name=>'v2',value=>$v2,force=>1);
 
 	$c->stash->{heading}='Изменение строки';
-	$data->{f}=$form;
+	$c->stash->{form}=$form;
 }
 
 sub delete :Local :Form
@@ -148,19 +148,16 @@ sub delete :Local :Form
 	};
 };
 
-sub create :Local :Form
+sub create :Local
 {
 	my ( $self, $c ) = @_;
 
 	my $model=$c->model;
-	my $form=$self->formbuilder;
-
 
 	my $redir;
 	$redir=$c->req->parameters->{redir} if $c->req->parameters->{redir};
 
-	my $data=$c->stash->{data}={};
-	$c->stash->{form}='';
+	my $data=$c->{stash};
 	if (($c->req->{parameters}->{_submit}//'') eq 'Отказаться')
 	{
 
@@ -190,22 +187,24 @@ sub create :Local :Form
 	if ($c->req->parameters->{confirm} or !defined($c->req->parameters->{confirm}))
 	{
 		
+		$data->{text}="Подтвердите создание строки";
+		$data->{form}->{form}=CGI::FormBuilder->new(
+			method=>"post",
+			action=>"?$c->{request}->{env}->{QUERY_STRING}",
+			submit=>['Подтвердить','Отказаться'],
+			fieldsubs=>1
+		);
 		$data->{confirm}={
-			text=>"Подтвердите создание строки",
 			v1=>$c->req->parameters->{v1},
 			r=>$c->req->parameters->{r},
 			v2=>$c->req->parameters->{v2},
-			display_=>{
-				order_=>[qw/v1 r v2/]
+			display=>{
+				order=>[qw/v1 r v2/],
+				renderer=>'table2'
 			},
 
 		};
-		$form->submit(['Подтвердить','Отказаться']);
-		$form->action("?$c->{request}->{env}->{QUERY_STRING}");
-		$form->method('post');
-		$data->{form}->{form}=$form;
-		$data->{display_}={order_=>[qw/confirm form /]};
-		$data->{c}=$c;
+		$data->{display}={order=>[qw/text confirm form /]};
 	};
 }
 
