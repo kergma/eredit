@@ -29,87 +29,87 @@ sub index :Path :Args(0) {
 }
 
 
-sub edit :Local :Form
+sub edit :Local
 {
 	my ( $self, $c ) = @_;
+	$c->stash->{heading}='Изменение строки';
 
-	my $model=$c->model;
-	my $id=$c->req->parameters->{id};
+	my $m=$c->model;
+	my $p=$c->req->parameters;
+	$p->{$_}=shift @{$p->{$_}} foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;
+	$p->{$p->{seltarget}}=$p->{selection} if $p->{seltarget};
 
-	my $redir;
-	$redir=$c->req->parameters->{redir} if $c->req->parameters->{redir};
-	$c->stash->{query_string}=$c->req->{env}->{QUERY_STRING};
-
-	my $row=$model->datarow($id);
+	if (($p->{_submit}//'') eq 'Вернуться')
+	{
+		$c->response->redirect($p->{redir});
+		return;
+	};
+	if ($c->flash->{row_update_success})
+	{
+		$c->stash->{success}=$c->flash->{row_update_success};
+		delete $c->flash->{row_update_success};
+	};
+	my $row=$m->datarow($p->{id});
 	unless ($row)
 	{
-		$c->stash->{form}='';
-		$c->stash->{msg}="Строка $id не существует";
+		$c->stash->{error}="Строка $p->{id} не существует";
 		return;
 	};
-	my $v1=$c->req->{parameters}->{v1}||$row->{v1};
-	my $r=$c->req->{parameters}->{r}||$row->{r};
-	my $v2=$c->req->{parameters}->{v2}//$row->{v2};
+	%$p=(%$p,%{$row}) unless $p->{_submitted};
+	$c->stash->{display}->{order}=[qw/row error success confirm/];
+	my $form=$c->stash->{row}->{form}=CGI::FormBuilder->new(
+		method=>"post",
+		action=>"?$c->{request}->{env}->{QUERY_STRING}",
+		submit=>$p->{redir}?['Сохранить','Удалить','Вернуться']:['Сохранить','Удалить'],
+		fieldsubs=>1,
+		selectnum=>0
+	);
+	
+	my ($def1,$rt1)=$m->recdef($p->{v1});
+	my ($def2,$rt2)=$m->recdef($p->{v2});
 
-	$c->stash->{confirmation}='update' if ($c->req->{parameters}->{_submit}//'') eq 'Сохранить';
-	$c->stash->{confirmation}='delete' if ($c->req->{parameters}->{_submit}//'') eq 'Удалить';
-	if (($c->req->{parameters}->{_submit}//'') eq 'Вернуться')
+	$form->field(name => 'id', label=>'id', value=>$p->{id},readonly=>1);
+	$form->field(name => 'v1', label=>'v1', value=>$p->{v1}, size=>1.22*length(decode("utf8",$p->{v1}//'')),rs_rectype=>$rt1,rs_anchor=>$def1?"$def1, $rt1":"Выбрать",renderer=>'recsel');
+	$form->field(name => 'r', label=>'r', value=>$p->{r}, options => $m->relations());
+	$form->field(name => 'v2', label=>'v2', value=>$p->{v2}, size=>1.22*length(decode("utf8",$p->{v2}//'')),rs_rectype=>$rt2,rs_anchor=>$def2?"$def2, $rt2":"Выбрать",renderer=>'recsel');
+	if (($p->{_submit}//'') eq 'Сохранить' or ($p->{_submit}//'') eq 'Удалить')
 	{
-		$c->response->redirect($redir);
-		return;
+		$c->stash->{confirm}={
+			text=>[($p->{_submit}//'') eq 'Сохранить'?"Подтвердите сохранение изменений в строке $p->{id}":"Подтвердите удаление строки $p->{id}"],
+			form=>CGI::FormBuilder->new(
+				method=>"post",
+				action=>"",
+				submit=>['Подтвердить','Отказаться'],
+				fieldsubs=>1
+			),
+		};
+		$p->{confirm_action}=$p->{_submit};
+		$c->stash->{confirm}->{form}->field(name=>$_,type=>'hidden',value=>$p->{$_}) foreach grep {$_!~/^_submit/} keys %$p;
 	};
-	if (($c->req->{parameters}->{_submit}//'') eq 'Подтвердить')
+
+	if (($p->{_submit}//'') eq 'Подтвердить')
 	{
+		if ($p->{confirm_action} eq 'Удалить')
+		{
+			$c->response->redirect("/row/delete?id=$p->{id}&_submit=Подтвердить&redir=$p->{redir}");
+			return;
+		};
 		my $rv;
-		eval {$rv=$model->update_row($id,$v1,$r,$v2);};
-		$c->stash->{msg}="Ошибка сохранения: ".db::errstr() unless $rv;
+		eval {$rv=$m->update_row($p->{id},$p->{v1},$p->{r},$p->{v2});};
+		$c->stash->{error}->{text}="Ошибка сохранения: ".db::errstr() unless $rv;
 		if ($rv)
 		{
-			$c->response->redirect($redir) if $redir;
-			return if $redir;
-			$c->response->redirect("?id=$id");
-			$c->flash->{update_success}=1;
+			$c->response->redirect($p->{redir}) if $p->{redir};
+			return if $p->{redir};
+			$c->response->redirect("?id=$p->{id}");
+			$c->flash->{row_update_success}={text=>"Изменения сохранены"};
 			return;
 		};
 	};
-	if ($c->flash->{update_success})
-	{
-		delete $c->flash->{update_success};
-		$c->stash->{msg}='Изменения сохранены';
-	};
 
-	
-	$v1=$c->req->{parameters}->{selection} if ($c->req->{parameters}->{seltarget}//'') eq 'v1';
-	$v2=$c->req->{parameters}->{selection} if ($c->req->{parameters}->{seltarget}//'') eq 'v2';
-
-	my ($def1,$rt1)=$model->recdef($v1);
-	my ($def2,$rt2)=$model->recdef($v2);
-	my $data=$c->stash->{data}={
-		row=>$row,
-		p=>$c->req->{parameters},
-		v1=>$v1
-	};
-	my $form=$self->formbuilder;
-
-	$form->selectnum(0);
-	$form->field(name => 'id', label=>'id', value=>$id,readonly=>1);
-	$form->field(name => 'v1', label=>'v1', value=>$v1, size=>1.22*length(decode("utf8",$v1//'')),recsel=>{rectype=>$rt1,anchor=>$def1?"$def1, $rt1":"Выбрать", target=>'v1'});
-	$form->field(name => 'r', label=>'r', value=>$r, options => $model->relations());
-	$form->field(name => 'v2', label=>'v2', value=>$v2, size=>1.22*length(decode("utf8",$v2//'')),recsel=>{rectype=>$rt2,anchor=>$def2?"$def2, $rt2":"Выбрать", target=>'v2'});
-
-	$form->submit($redir?['Сохранить','Удалить','Вернуться']:['Сохранить','Удалить']);
-	$form->method('post');
-	$form->action("?$c->{request}->{env}->{QUERY_STRING}");
-
-	$form->field(name=>'v1',value=>$v1,force=>1);
-	$form->field(name=>'r',value=>$r,force=>1);
-	$form->field(name=>'v2',value=>$v2,force=>1);
-
-	$c->stash->{heading}='Изменение строки';
-	$c->stash->{form}=$form;
 }
 
-sub delete :Local :Form
+sub delete :Local
 {
 	my ( $self, $c ) = @_;
 
@@ -119,7 +119,6 @@ sub delete :Local :Form
 	my $redir;
 	$redir=$c->req->parameters->{redir} if $c->req->parameters->{redir};
 
-	$c->stash->{form}='';
 	my $row=$model->datarow($id);
 	unless ($row or $c->flash->{delete_success})
 	{
