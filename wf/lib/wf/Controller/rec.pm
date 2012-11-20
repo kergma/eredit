@@ -48,7 +48,8 @@ sub search:Local :Form
 	my %filter=(_submitted=>0,_submit=>0);
 	$filter{recid}=$form->field('recid');
 	$filter{defvalue}=$form->field('defvalue');
-	$filter{rectype}=$form->field('rectype');
+	$filter{rectype}=$form->field('rectype')//'';
+	$filter{rectype}=['Ключ PKI','Сертификат PKI'] if $filter{rectype} eq 'Объект PKI';
 	$filter{limit}=$form->field('limit');
 
 	$form->field(name => $_, value=>$c->req->{parameters}->{$_}, type=>'hidden') foreach grep {!defined $filter{$_}} keys %{$c->req->{parameters}};
@@ -67,7 +68,7 @@ sub search:Local :Form
 	}
 	else
 	{
-		$_->{recref}=sprintf qq(<a href="/rec/view?id=$_->{recid}">%s</a>),$_->{defvalue}//'' foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{recref}=sprintf qq(<a href="/rec/view?id=%s">%s</a>),$_->{recid}//'',$_->{defvalue}//'&ltне определено&gt' foreach @{$c->stash->{data}->{records}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
