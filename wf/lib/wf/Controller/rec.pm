@@ -50,6 +50,7 @@ sub search:Local :Form
 	$filter{defvalue}=$form->field('defvalue');
 	$filter{rectype}=$form->field('rectype')//'';
 	$filter{rectype}=['Ключ PKI','Сертификат PKI'] if $filter{rectype} eq 'Объект PKI';
+	$filter{related}=$c->req->{parameters}->{related} if $c->req->{parameters}->{related};
 	$filter{limit}=$form->field('limit');
 
 	$form->field(name => $_, value=>$c->req->{parameters}->{$_}, type=>'hidden') foreach grep {!defined $filter{$_}} keys %{$c->req->{parameters}};
