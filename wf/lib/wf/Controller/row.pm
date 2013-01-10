@@ -69,9 +69,9 @@ sub edit :Local
 	my ($def2,$rt2)=$m->recdef($p->{v2});
 
 	$form->field(name => 'id', label=>'id', value=>$p->{id},readonly=>1);
-	$form->field(name => 'v1', label=>'v1', value=>$p->{v1}, size=>1.22*length(decode("utf8",$p->{v1}//'')),rs_rectype=>$rt1,rs_anchor=>$def1?"$def1, $rt1":"Выбрать",renderer=>'recsel');
+	$form->field(name => 'v1', label=>'v1', value=>$p->{v1}, size=>1.22*length(decode("utf8",$p->{v1}//'')),rs_rectype=>$rt1,rs_recdef=>$def1,renderer=>'recsel');
 	$form->field(name => 'r', label=>'r', value=>$p->{r}, options => $m->relations());
-	$form->field(name => 'v2', label=>'v2', value=>$p->{v2}, size=>1.22*length(decode("utf8",$p->{v2}//'')),rs_rectype=>$rt2,rs_anchor=>$def2?"$def2, $rt2":"Выбрать",renderer=>'recsel');
+	$form->field(name => 'v2', label=>'v2', value=>$p->{v2}, size=>1.22*length(decode("utf8",$p->{v2}//'')),rs_rectype=>$rt2,rs_recdef=>$def2,renderer=>'recsel');
 	if (($p->{_submit}//'') eq 'Сохранить' or ($p->{_submit}//'') eq 'Удалить')
 	{
 		$c->stash->{confirm}={
