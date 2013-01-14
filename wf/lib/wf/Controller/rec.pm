@@ -112,7 +112,7 @@ sub view:Local
 		newrow=>{
 			text=>qq\<a href="/row/create?v2=$id&redir=/rec/view%3Fid=$id">Новая строка</a>\
 		},
-		display=>{order=>[qw/id rec newrow/]},
+		display=>{order=>[qw/id rec newrow more/]},
 	};
 	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
 	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
@@ -125,6 +125,8 @@ sub view:Local
 		);
 		$r->{e}=qq\<a href="/row/edit?id=$r->{id}&redir=/rec/view%3Fid=$id">$r->{id}</a>\;
 	};
+	$data->{more}={text=>qq\<a href="/pki/pkey/view?id=$id">Просмотр</a>\} if ($data->{rec}->{def}->{rectype}//'') eq 'Ключ PKI';
+	$data->{more}={text=>qq\<a href="/pki/cert/view?id=$id">Просмотр</a>\} if ($data->{rec}->{def}->{rectype}//'') eq 'Сертификат PKI';
 }
 
 sub create:Local
