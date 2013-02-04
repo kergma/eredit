@@ -9,6 +9,8 @@ __PACKAGE__->config(
 	render_die => 1,
 	INCLUDE_PATH => [wf->path_to('root')],
 	WRAPPER => 'wrapper.tt',
+	EVAL_PERL=>1,
+	RECURSION=>1,
 );
 
 =head1 NAME
