@@ -49,7 +49,7 @@ sub search:Local :Form
 	$filter{recid}=$form->field('recid');
 	$filter{defvalue}=$form->field('defvalue');
 	$filter{rectype}=$form->field('rectype')//'';
-	$filter{rectype}=['Ключ PKI','Сертификат PKI'] if $filter{rectype} eq 'Объект PKI';
+	$filter{rectype}=['Ключ PKI','Запрос сертификата PKI','Сертификат PKI'] if $filter{rectype} eq 'Объект PKI';
 	$filter{related}=$c->req->{parameters}->{related} if $c->req->{parameters}->{related};
 	$filter{limit}=$form->field('limit');
 
