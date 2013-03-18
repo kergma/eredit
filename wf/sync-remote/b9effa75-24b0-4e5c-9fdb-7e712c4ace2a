@@ -1,0 +1,2 @@
+#!/usr/bin/perl
+exec "ssh -i /home/spu/udb/server/worker/wf/udb-sync trac\@trac ./udb2pptrac"
