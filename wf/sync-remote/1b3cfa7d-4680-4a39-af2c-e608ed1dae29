@@ -1,2 +1,0 @@
-#!/usr/bin/perl
-exec "ssh -i /home/spu/udb/server/worker/wf/udb-sync worker\@rsync bin/udb2pp"
