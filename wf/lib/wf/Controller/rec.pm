@@ -2,6 +2,8 @@ package wf::Controller::rec;
 use Moose;
 use namespace::autoclean;
 
+no warnings 'uninitialized';
+
 BEGIN {extends 'Catalyst::Controller::FormBuilder'; }
 
 =head1 NAME
@@ -125,8 +127,7 @@ sub view:Local
 		);
 		$r->{e}=qq\<a href="/row/edit?id=$r->{id}&redir=/rec/view%3Fid=$id">$r->{id}</a>\;
 	};
-	$data->{more}={text=>qq\<a href="/pki/pkey/view?id=$id">Просмотр</a>\} if ($data->{rec}->{def}->{rectype}//'') eq 'Ключ PKI';
-	$data->{more}={text=>qq\<a href="/pki/cert/view?id=$id">Просмотр</a>\} if ($data->{rec}->{def}->{rectype}//'') eq 'Сертификат PKI';
+	$data->{more}={text=>qq\<a href="/pki/view?id=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 
 sub create:Local
