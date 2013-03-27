@@ -127,7 +127,7 @@ sub view:Local
 		);
 		$r->{e}=qq\<a href="/row/edit?id=$r->{id}&redir=/rec/view%3Fid=$id">$r->{id}</a>\;
 	};
-	$data->{more}={text=>qq\<a href="/pki/view?id=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
+	$data->{more}={text=>qq\<a href="/pki/view?record=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 
 sub create:Local
