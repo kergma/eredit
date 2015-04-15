@@ -156,7 +156,7 @@ sub create :Local
 	my $redir;
 	$redir=$c->req->parameters->{redir} if $c->req->parameters->{redir};
 
-	my $data=$c->{stash};
+	my $data=$c->stash;
 	if (($c->req->{parameters}->{_submit}//'') eq 'Отказаться')
 	{
 
