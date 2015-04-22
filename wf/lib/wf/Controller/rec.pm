@@ -67,7 +67,7 @@ sub ersearch:Local :Form
 	}
 	else
 	{
-		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}-1]),$_->{names}->[0]//'&ltне определено&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
+		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}-1]),$_->{names}->[0]//'&ltбез имени&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
@@ -173,6 +173,49 @@ sub view:Local
 	};
 	$data->{more}={text=>qq\<a href="/pki/view?record=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
+
+sub erview:Local
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+	my $en=$c->req->parameters->{en};
+
+	my $data=$c->stash->{data}={
+		en=>{text=>$en},
+		rec=>{
+			rows=>$model->record_of($en),
+			display=>{
+				v1=>'Значение',
+				r=>'Связь',
+				v2=>'Значение',
+				c1=>'Имя/значение',
+				c2=>'Имя/значение',
+				e=>'Ред',
+				order=>[qw/e c1 c2/]
+			},
+		},
+		newrow=>{
+			text=>qq\<a href="/row/create?v2=$en&redir=/rec/view%3Fid=$en">Новая строка</a>\
+		},
+		display=>{order=>[qw/en rec newrow more/]},
+	};
+	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($en);
+	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
+	foreach my $r (@{$data->{rec}->{rows}})
+	{
+		($r->{c1},$r->{c2})=grep {$_} (
+			$r->{e1}==$en?'':sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e1},$r->{name1}||'&ltбез имени&gt'),
+			#$r->{v1} && $r->{refdef}?qq\<a href="/rec/view?en=$r->{v1}">$r->{refdef}</a>\:$r->{v1},
+			$r->{key},
+			#$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?en=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
+			$r->{e2}?sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
+		);
+		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/view%3Fen=$en">$r->{table}:$r->{row}</a>\;
+	};
+	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
+}
+
 
 sub create:Local
 {
