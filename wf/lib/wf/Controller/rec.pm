@@ -200,15 +200,14 @@ sub erview:Local
 		},
 		display=>{order=>[qw/en rec newrow more/]},
 	};
-	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($en);
-	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
+	$data->{entity}=$model->entity($en);
+	$c->stash->{heading}=sprintf "%s (%s)",$data->{entity}->{names}->[0],$data->{entity}->{types}->[-1];
+	$data->{en}->{text}=join(', ',$en, @{$data->{entity}->{names}}[1 .. @{$data->{entity}->{names}}-1],@{$data->{entity}->{types}});
 	foreach my $r (@{$data->{rec}->{rows}})
 	{
 		($r->{c1},$r->{c2})=grep {$_} (
 			$r->{e1}==$en?'':sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e1},$r->{name1}||'&ltбез имени&gt'),
-			#$r->{v1} && $r->{refdef}?qq\<a href="/rec/view?en=$r->{v1}">$r->{refdef}</a>\:$r->{v1},
 			$r->{key},
-			#$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?en=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
 			$r->{e2}?sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
 		);
 		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/view%3Fen=$en">$r->{table}:$r->{row}</a>\;
