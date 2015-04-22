@@ -67,7 +67,7 @@ sub ersearch:Local :Form
 	}
 	else
 	{
-		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}]),$_->{names}->[0]//'&ltне определено&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
+		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}-1]),$_->{names}->[0]//'&ltне определено&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
