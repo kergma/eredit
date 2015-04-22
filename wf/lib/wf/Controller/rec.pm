@@ -29,6 +29,51 @@ sub index :Path :Args(0) {
     $c->response->body('Matched wf::Controller::rec in rec.');
 }
 
+sub ersearch:Local :Form
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+
+	$c->stash->{heading}='Выбор записи';
+
+	my $p=$c->req->{parameters};
+
+	$p->{limit}//=3000;
+	my $form=$self->formbuilder;
+	$form->selectnum(0);
+	$form->field(name => 'selection', type=>'hidden');
+	$form->field(name => 'en', label=>'Ид', value=>$p->{en});
+	$form->field(name => 'name', label=>'Имя', value=>$p->{name});
+	$form->field(name => 'type', label=>'Тип', options => $model->types(), value=>$p->{type});
+	$form->field(name => 'domain', label=>'Домен', options => $model->domains(), value=>$p->{domain});
+	$form->field(name => 'limit', label=>'Ограничить',value=>$p->{limit});
+	$form->submit('Выбрать');
+	$form->method('post');
+	
+	$_||=undef foreach values %$p;
+
+	$c->stash->{data}={entities=>$model->entities($p)};
+	($_->{name}=$_->{names}->[0]) and ($_->{type}=$_->{types}->[-1]) foreach @{$c->stash->{data}->{entities}->{rows}};
+	$c->stash->{data}->{entities}->{display}= {
+		name=>'Имя',
+		type=>'Тип',
+		en=>'Идентификатор',
+		order=>[qw/name type en/],
+	};
+	my $selaction=$c->req->{parameters}->{selaction};
+	if ($selaction)
+	{
+		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
+	}
+	else
+	{
+		$_->{recref}=sprintf qq(<a href="/rec/view?id=%s">%s</a>),$_->{recid}//'',$_->{defvalue}//'&ltне определено&gt' foreach @{$c->stash->{data}->{records}->{rows}};
+	};
+	$c->stash->{data}->{p}=$c->req->{parameters};
+	$c->stash->{display}={order=>[qw/formbuilder data/]};
+
+}
 sub search:Local :Form
 {
 	my ( $self, $c ) = @_;
