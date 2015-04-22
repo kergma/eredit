@@ -54,21 +54,20 @@ sub ersearch:Local :Form
 	$_||=undef foreach values %$p;
 
 	$c->stash->{data}={entities=>$model->entities($p)};
-	($_->{name}=$_->{names}->[0]) and ($_->{type}=$_->{types}->[-1]) foreach @{$c->stash->{data}->{entities}->{rows}};
+	$_->{type}=sprintf qq\<span title="%s">%s</span>\,join(', ',@{$_->{types}}[0 .. @{$_->{types}}-2]),$_->{types}->[-1] foreach @{$c->stash->{data}->{entities}->{rows}};
 	$c->stash->{data}->{entities}->{display}= {
 		name=>'Имя',
 		type=>'Тип',
 		en=>'Идентификатор',
 		order=>[qw/name type en/],
 	};
-	my $selaction=$c->req->{parameters}->{selaction};
-	if ($selaction)
+	if ($p->{selaction})
 	{
-		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$p->{selaction}';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
 	}
 	else
 	{
-		$_->{recref}=sprintf qq(<a href="/rec/view?id=%s">%s</a>),$_->{recid}//'',$_->{defvalue}//'&ltне определено&gt' foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}]),$_->{names}->[0]//'&ltне определено&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
