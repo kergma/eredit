@@ -210,7 +210,7 @@ sub erview:Local
 			$r->{key},
 			$r->{e2}?sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
 		);
-		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/view%3Fen=$en">$r->{table}:$r->{row}</a>\;
+		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/erview%3Fen=$en">$r->{table}:$r->{row}</a>\;
 	};
 	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }

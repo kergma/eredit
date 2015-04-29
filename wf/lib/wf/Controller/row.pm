@@ -29,6 +29,87 @@ sub index :Path :Args(0) {
 }
 
 
+sub eredit :Local
+{
+	my ( $self, $c ) = @_;
+	$c->stash->{heading}='Изменение строки';
+
+	my $m=$c->model;
+	my $p=$c->req->parameters;
+	my $table=ref $p->{table} eq 'ARRAY'?$p->{table}->[0]:$p->{table};
+	$p->{$_}=$p->{$_}->[-1] foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;
+	$p->{$p->{seltarget}}=$p->{selection} if $p->{seltarget};
+
+	if (($p->{_submit}//'') eq 'Вернуться')
+	{
+		$c->response->redirect($p->{redir});
+		return;
+	};
+	if ($c->flash->{row_update_success})
+	{
+		$c->stash->{success}=$c->flash->{row_update_success};
+		delete $c->flash->{row_update_success};
+	};
+	my $row;
+	eval {$row=$m->row($table,$p->{row})};
+	$c->stash->{error}="Ошибка: ".db::errstr() and return unless $row;
+	$c->stash->{error}="Строка $table:$p->{row} не существует" and return if @$row<1;
+
+	$c->stash->{r}=$row;
+	$c->stash->{display}->{order}=[qw/row error success confirm/];
+	my $form=$c->stash->{row}->{form}=CGI::FormBuilder->new(
+		method=>"post",
+		action=>"?$c->{request}->{env}->{QUERY_STRING}",
+		submit=>$p->{redir}?['Сохранить','Удалить','Вернуться']:['Сохранить','Удалить'],
+		fieldsubs=>1,
+		selectnum=>0
+	);
+
+	$p->{$_->{column}}//=$_->{value} foreach @$row;
+	foreach my $r (@$row)
+	{
+		$form->field(name=>$r->{column},label=>$r->{column}, value=>$p->{$r->{column}}, readonly=>$r->{column} eq 'row'||undef);
+		$form->field(name=>$r->{column}, renderer=>'ensel') if $r->{column}=~'^e\d+';
+		$form->field(name=>$r->{column}, renderer=>'keysel') if $r->{column} eq 'r';
+	};
+	
+	if (($p->{_submit}//'') eq 'Сохранить' or ($p->{_submit}//'') eq 'Удалить')
+	{
+		$c->stash->{confirm}={
+			text=>[($p->{_submit}//'') eq 'Сохранить'?"Подтвердите сохранение изменений в строке $table:$p->{row}":"Подтвердите удаление строки $table:$p->{row}"],
+			form=>CGI::FormBuilder->new(
+				method=>"post",
+				action=>"",
+				submit=>['Подтвердить','Отказаться'],
+				fieldsubs=>1
+			),
+		};
+		$p->{confirm_action}=$p->{_submit};
+		$c->stash->{confirm}->{form}->field(name=>$_,type=>'hidden',value=>$p->{$_}) foreach grep {$_!~/^_submit/} keys %$p;
+	};
+
+	if (($p->{_submit}//'') eq 'Подтвердить')
+	{
+		if ($p->{confirm_action} eq 'Удалить')
+		{
+			$c->response->redirect("/row/delete?id=$p->{id}&_submit=Подтвердить&redir=$p->{redir}");
+			return;
+		};
+		my $rv;
+		eval {$rv=$m->row_update($row,$p);};
+		$c->stash->{error}->{text}="Ошибка сохранения: ".db::errstr() unless $rv;
+		if ($rv)
+		{
+			$c->response->redirect($p->{redir}) if $p->{redir};
+			return if $p->{redir};
+			my $table=(grep {$_->{action} ne 'deleted'} @$rv)[-1];
+			$c->response->redirect("?table=$table->{table}&row=$table->{row}");
+			$c->flash->{row_update_success}={text=>["Изменения сохранены",map{"$_->{table}:$_->{row} $_->{action}"} @$rv ]};
+			return;
+		};
+	};
+
+}
 sub edit :Local
 {
 	my ( $self, $c ) = @_;
