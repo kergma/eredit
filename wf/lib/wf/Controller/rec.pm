@@ -214,7 +214,6 @@ sub erview:Local
 	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 
-
 sub create:Local
 {
 	my ( $self, $c ) = @_;
@@ -223,6 +222,16 @@ sub create:Local
 	my $id=$model->newid();
 	$c->response->headers->header(cache_control => "no-cache");
 	$c->response->redirect("/rec/view?id=$id",302);
+}
+
+sub ercreate:Local
+{
+	my ( $self, $c ) = @_;
+
+	my $model=$c->model;
+	my $id=$model->generate_id();
+	$c->response->headers->header(cache_control => "no-cache");
+	$c->response->redirect("/rec/erview?en=$id",302);
 }
 =head1 AUTHOR
 
