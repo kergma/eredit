@@ -195,9 +195,6 @@ sub erview:Local
 				order=>[qw/e c1 c2/]
 			},
 		},
-		newrow=>{
-			text=>qq\<a href="/row/create?v2=$en&redir=/rec/view%3Fid=$en">Новая строка</a>\
-		},
 		display=>{order=>[qw/en rec newrow more/]},
 	};
 	$data->{entity}=$model->entity($en);
@@ -211,7 +208,9 @@ sub erview:Local
 			$r->{e2}?sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
 		);
 		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/erview%3Fen=$en">$r->{table}:$r->{row}</a>\;
+		$data->{tables}->{$r->{table}}++;
 	};
+	$data->{newrow}->{text}=sprintf qq\<a href="/row/eredit?e1=$en&e2=$en&table=%s&redir=/rec/erview%%3Fen=$en">Новая строка</a>\,(sort {$data->{tables}->{$b} <=> $data->{tables}->{$a}} keys %{$data->{tables}})[0];
 	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 

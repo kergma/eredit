@@ -2,6 +2,7 @@ package wf::Controller::row;
 use Moose;
 use namespace::autoclean;
 use Encode;
+no warnings 'uninitialized';
 
 BEGIN { extends 'Catalyst::Controller::FormBuilder'; }
 
@@ -32,13 +33,16 @@ sub index :Path :Args(0) {
 sub eredit :Local
 {
 	my ( $self, $c ) = @_;
-	$c->stash->{heading}='Изменение строки';
 
 	my $m=$c->model;
 	my $p=$c->req->parameters;
 	my $table=ref $p->{table} eq 'ARRAY'?$p->{table}->[0]:$p->{table};
 	$p->{$_}=$p->{$_}->[-1] foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;
 	$p->{$p->{seltarget}}=$p->{selection} if $p->{seltarget};
+
+	$c->stash->{heading}='Изменение строки';
+	$c->stash->{heading}='Создание строки' unless $p->{row};
+	$_||=undef foreach values %$p;
 
 	if (($p->{_submit}//'') eq 'Вернуться')
 	{
@@ -50,17 +54,22 @@ sub eredit :Local
 		$c->stash->{success}=$c->flash->{row_update_success};
 		delete $c->flash->{row_update_success};
 	};
-	my $row;
-	eval {$row=$m->row($table,$p->{row})};
-	$c->stash->{error}="Ошибка: ".db::errstr() and return unless $row;
-	$c->stash->{error}="Строка $table:$p->{row} не существует" and return if @$row<1;
+	my $row =$m->row($table,$p->{row})//[];
+	$c->stash->{error}="строка $table: $p->{row} не существует" and return if $p->{row} and @$row<1;
+
+	my $storages=$m->storages();
+	if (@$row<1)
+	{
+		my $storage=(grep {$_->{table} eq $p->{table}} @$storages)[0];
+		$row=[{column=>'table',value=>$storage->{table}},map {{column=>$_}} @{$storage->{columns}}];
+	};
 
 	$c->stash->{r}=$row;
 	$c->stash->{display}->{order}=[qw/row error success confirm/];
 	my $form=$c->stash->{row}->{form}=CGI::FormBuilder->new(
 		method=>"post",
 		action=>"?$c->{request}->{env}->{QUERY_STRING}",
-		submit=>$p->{redir}?['Сохранить','Удалить','Вернуться']:['Сохранить','Удалить'],
+		submit=>[grep {$_} ('Сохранить',defined $p->{row} && 'Удалить',$p->{redir}&&'Вернуться')],
 		fieldsubs=>1,
 		selectnum=>0
 	);
@@ -72,11 +81,17 @@ sub eredit :Local
 		$form->field(name=>$r->{column}, renderer=>'ensel') if $r->{column}=~'^e\d+';
 		$form->field(name=>$r->{column}, renderer=>'keysel') if $r->{column} eq 'r';
 	};
+	$form->field(name=>'table',options=>[map {$_->{table}} @$storages], onchange=>'this.form.submit()');
 	
 	if (($p->{_submit}//'') eq 'Сохранить' or ($p->{_submit}//'') eq 'Удалить')
 	{
+		$c->stash->{error}='не задана таблица строки' and return unless $p->{table};
+		my $message="Подтвердите сохранение изменений в строке $table:$p->{row}";
+		$message.=" с переносом в таблицу $p->{table}" if $table ne $p->{table};
+		$message="Подтвердите создание строки в таблице $p->{table}" unless $p->{row};
+		$message="Подтвердите удаление строки $table:$p->{row}" if $p->{_submit} eq 'Удалить';
 		$c->stash->{confirm}={
-			text=>[($p->{_submit}//'') eq 'Сохранить'?"Подтвердите сохранение изменений в строке $table:$p->{row}":"Подтвердите удаление строки $table:$p->{row}"],
+			text=>[$message],
 			form=>CGI::FormBuilder->new(
 				method=>"post",
 				action=>"",
@@ -90,20 +105,14 @@ sub eredit :Local
 
 	if (($p->{_submit}//'') eq 'Подтвердить')
 	{
-		if ($p->{confirm_action} eq 'Удалить')
-		{
-			$c->response->redirect("/row/delete?id=$p->{id}&_submit=Подтвердить&redir=$p->{redir}");
-			return;
-		};
-		my $rv;
-		eval {$rv=$m->row_update($row,$p);};
+		delete $p->{table} if $p->{confirm_action} eq 'Удалить';
+		my $rv=$m->row_update($row,$p);
 		$c->stash->{error}->{text}="Ошибка сохранения: ".db::errstr() unless $rv;
 		if ($rv)
 		{
 			$c->response->redirect($p->{redir}) if $p->{redir};
 			return if $p->{redir};
-			my $table=(grep {$_->{action} ne 'deleted'} @$rv)[-1];
-			$c->response->redirect("?table=$table->{table}&row=$table->{row}");
+			$c->response->redirect("?table=$rv->[-1]->{table}&row=$rv->[-1]->{row}");
 			$c->flash->{row_update_success}={text=>["Изменения сохранены",map{"$_->{table}:$_->{row} $_->{action}"} @$rv ]};
 			return;
 		};
