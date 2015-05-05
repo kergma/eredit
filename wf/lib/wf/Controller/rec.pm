@@ -38,6 +38,7 @@ sub ersearch:Local :Form
 	$c->stash->{heading}='Выбор записи';
 
 	my $p=$c->req->{parameters};
+	$p->{$_}=$p->{$_}->[-1] foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;
 
 	$p->{limit}//=3000;
 	my $form=$self->formbuilder;
@@ -50,24 +51,27 @@ sub ersearch:Local :Form
 	$form->field(name => 'limit', label=>'Ограничить',value=>$p->{limit});
 	$form->submit('Выбрать');
 	$form->method('post');
+
+	$form->field(name => $_, value=>$p->{$_}, type=>'hidden') foreach grep {my $p=$_;! grep {$_ eq $p} $form->fields} keys %$p;
 	
 	$_||=undef foreach values %$p;
 
 	$c->stash->{data}={entities=>$model->entities($p)};
 	$_->{type}=sprintf qq\<span title="%s">%s</span>\,join(', ',@{$_->{types}}[0 .. @{$_->{types}}-2]),$_->{types}->[-1] foreach @{$c->stash->{data}->{entities}->{rows}};
 	$c->stash->{data}->{entities}->{display}= {
-		name=>'Имя',
+		nameref=>'Имя',
 		type=>'Тип',
 		en=>'Идентификатор',
-		order=>[qw/name type en/],
+		order=>[qw/nameref type en/],
 	};
+	($_->{name},$_->{namehint})=($_->{names}->[0]//'&ltбез имени&gt',join(', ',@{$_->{names}}[1 .. @{$_->{names}}-1])) foreach @{$c->stash->{data}->{entities}->{rows}};
 	if ($p->{selaction})
 	{
-		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$p->{selaction}';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
+		$_->{nameref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{en}';f.action='$p->{selaction}';f.submit()" title="$_->{namehint}">$_->{name}</a>\ foreach @{$c->stash->{data}->{entities}->{rows}};
 	}
 	else
 	{
-		$_->{name}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},join(', ',@{$_->{names}}[1 .. @{$_->{names}}-1]),$_->{names}->[0]//'&ltбез имени&gt' foreach @{$c->stash->{data}->{entities}->{rows}};
+		$_->{nameref}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},$_->{namehint},$_->{name} foreach @{$c->stash->{data}->{entities}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};

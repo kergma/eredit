@@ -1,0 +1,32 @@
+[%# vim: set filetype=javascript: -%]
+[%PERL%]$stash->{f}->{entity}=$stash->{c}->model()->entity($stash->{f}->value);[%END%]
+[%UNLESS f.readonly%]
+<span>
+[%f.render%]
+<a href="javascript:;" class="ensel" entype="[%f.entity.types.-1%]">[%IF f.entity.en%][%f.entity.names.0%], [%f.entity.types.-1%][%ELSE%]Выбрать[%END%]</a>
+</span>
+[%UNLESS c.stash.enselcode%]
+[%c.stash.selreccode='yes'%]
+<input name="seltarget" type="hidden"></input>
+<input name="selaction" type="hidden" value="/[%c.action%][%IF c.request.env.QUERY_STRING%]?[%c.request.env.QUERY_STRING%][%END%]"></input>
+<script>
+$(function()
+{
+	$('.ensel').click(function()
+	{
+		var form=$(this).closest('form');
+		n=$("input",$(this).parent()).attr('name');
+		$("[name=seltarget]",form).val(n);
+		if (typeof form.attr("original_action")=='undefined')
+			form.attr("original_action",form.attr("action"));
+		action="/rec/ersearch?type="+$(this).attr("entype");
+		form.attr("action",action);
+		form.submit();
+		form.attr("action",form.attr("original_action"));
+	});
+});
+</script>
+[%END%][%#enselcode%]
+[%ELSE%][%#readonly%]
+[%f.value%][%IF f.entity.en%] ([%f.entity.names.0%], [%f.entity.types.-1%])[%END%]
+[%END%]
