@@ -42,7 +42,6 @@ sub eredit :Local
 
 	$c->stash->{heading}='Изменение строки';
 	$c->stash->{heading}='Создание строки' unless $p->{row};
-	$_||=undef foreach values %$p;
 
 	if (($p->{_submit}//'') eq 'Вернуться')
 	{
@@ -117,7 +116,6 @@ sub eredit :Local
 			return;
 		};
 	};
-
 }
 sub edit :Local
 {
