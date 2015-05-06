@@ -1,0 +1,93 @@
+[%# vim: set filetype=javascript: -%]
+[%PERL%]$stash->{f}->{keys}=$stash->{c}->model()->keys();[%END%]
+[%f.key=f.keys.${f.value}%]
+[%UNLESS f.readonly%]
+<span class="keycont">
+[%f.class="keyinp"%]
+[%f.render%]
+<select class="keydisp">
+<option value="">&lt;не выбран&gt;</option>
+[%FOREACH k IN f.keys.values-%]
+<option value="[%k.0%]" key="[%k.2%]" domain="[%k.1%]"[%IF f.key.0==k.0%] selected[%END%]>[%k.2%], [%k.1%]</option>
+[%END%][%# keys %]
+<option value="---xxx---">&lt;не существует&gt;</option>
+</select>
+</span>[%# .keycont %]
+[%UNLESS c.stash.keyselcode%]
+<script>
+function reorder(disp,sre)
+{
+	var s=$(':selected',disp);
+	var ks=$(s).attr('key')||''.toLocaleLowerCase();
+	var ds=$(s).attr('domain')||''.toLocaleLowerCase();
+	if (sre) sre=sre.replace(/\s+/g,'.*?');
+	var o=disp.children().sort(function(a,b){
+		var ka=($(a).attr('key')||'').toLocaleLowerCase();
+		var kb=($(b).attr('key')||'').toLocaleLowerCase();
+		var da=($(a).attr('domain')||'').toLocaleLowerCase();
+		var db=($(b).attr('domain')||'').toLocaleLowerCase();
+		var va=($(a).attr('value')||'').toLocaleLowerCase();
+		var vb=($(b).attr('value')||'').toLocaleLowerCase();
+		var incda= da==ds?1:0;
+		var incdb= db==ds?1:0;
+		var ma=ka.match(sre)?1:0;
+		var mb=kb.match(sre)?1:0;
+		var oa=va==''?1:va=='---xxx---'?2:3;
+		var ob=vb==''?1:vb=='---xxx---'?2:3;
+		return oa-ob || mb-ma || incdb-incda  || ka.localeCompare(kb);
+	});
+	var v=disp.val();
+	disp.append(o);
+	disp.val(v);
+}
+$(function()
+{
+	$('.keydisp').on('change',function()
+	{
+		var disp=$(this);
+		var cont=disp.closest('.keycont');
+		var inp=$('.keyinp',cont);
+		if (disp.val()=='---xxx---') return;
+		inp.val(disp.val());
+		inp.attr('oldvalue',disp.val());
+		reorder(disp);
+	});
+
+	var typing_timer;
+	$('.keyinp').on('input',function()
+	{
+		clearTimeout(typing_timer);
+		var inp=$(this);
+		if (inp.attr('oldvalue')==inp.val().trim()) return;
+		inp.attr('oldvalue',inp.val().trim());
+		var cont=inp.closest('.keycont');
+		var disp=$('.keydisp',cont);
+		typing_timer=setTimeout(function() {
+			var v=inp.val().trim();
+			if ($("option[value='"+v+"']",disp).length>0)
+				disp.val(v);
+			else
+				disp.val('---xxx---');
+			
+			var sre;
+			if (!/^[0-9]+$/.test(v)) sre=v;
+			reorder(disp,sre);
+
+			clearTimeout(typing_timer);
+		},1000);
+	});
+	$('.keycont').each(function()
+	{
+		var disp=$('.keydisp',$(this));
+		var inp=$('.keyinp',$(this));
+		var sre;
+		if (!/^[0-9]+$/.test(inp.val().trim())) sre=inp.val().trim();
+		reorder(disp,sre);
+	});
+
+});
+</script>
+[%END%][%#keyselcode%]
+[%ELSE%][%#readonly%]
+[%f.value%][%IF f.key%] ([%f.key.2%], [%f.key.1%])[%END%]
+[%END%]
