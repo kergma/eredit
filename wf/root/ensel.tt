@@ -1,28 +1,64 @@
 [%# vim: set filetype=javascript: -%]
 [%PERL%]$stash->{f}->{entity}=$stash->{c}->model()->entity($stash->{f}->value);[%END%]
 [%UNLESS f.readonly%]
-<span>
+<span class="encont">
+[%f.class="eninp"%]
 [%f.render%]
-<a href="javascript:;" class="ensel" entype="[%f.entity.types.-1%]">[%IF f.entity.en%][%f.entity.names.0%], [%f.entity.types.-1%][%ELSE%]Выбрать[%END%]</a>
-</span>
+<span class="endisp">
+<a href="javascript:;" class="ensel">[%IF f.entity.en%][%f.entity.names.0%][%ELSE%]Выбрать[%END%]</a>
+[%-IF f.entity.en%]<a href="javascript:;" class="ensel" entype="[%f.entity.types.-1%]">, [%f.entity.types.-1%]</a>[%END%]
+</span>[%# .endisp%]
+</span>[%# .encont%]
 [%UNLESS c.stash.enselcode%]
-[%c.stash.selreccode='yes'%]
+[%c.stash.enselcode='yes'%]
 <input name="seltarget" type="hidden"></input>
 <input name="selaction" type="hidden" value="/[%c.action%][%IF c.request.env.QUERY_STRING%]?[%c.request.env.QUERY_STRING%][%END%]"></input>
 <script>
-$(function()
+function init_ensel()
 {
 	$('.ensel').click(function()
 	{
 		var form=$(this).closest('form');
-		n=$("input",$(this).parent()).attr('name');
-		$("[name=seltarget]",form).val(n);
+		var inp=$('.eninp',$(this).closest('.encont'));
+		var target=inp.attr('name');
+		$("[name=seltarget]",form).val(target);
 		if (typeof form.attr("original_action")=='undefined')
 			form.attr("original_action",form.attr("action"));
-		action="/rec/ersearch?type="+$(this).attr("entype");
+		var params={};
+		if (typeof($(this).attr("entype"))!='undefined') params.type=$(this).attr("entype");
+		var name=inp.val().trim();
+		if (!/^[0-9]+$/.test(name)) params.name=name;
+		var action="/rec/ersearch";
+		if (!$.isEmptyObject(params)) action=action+'?'+$.param(params);
 		form.attr("action",action);
 		form.submit();
 		form.attr("action",form.attr("original_action"));
+	});
+}
+$(function()
+{
+	init_ensel();
+	var typing_timer;
+	$('.eninp').on('input',function()
+	{
+		clearTimeout(typing_timer);
+		if ($(this).attr('oldvalue')==$(this).val().trim()) return;
+		$(this).attr('oldvalue',$(this).val().trim());
+		var inp=$(this);
+		var cont=inp.closest('.encont');
+		var disp=$('.endisp',cont);
+		typing_timer=setTimeout(function() {
+			$.ajax("/ajapi/entity/"+inp.val().trim())
+				.fail(function(e){disp.html('error '+e.status+': '+e.responseText)})
+				.done(function(r) {
+					if (r.error) { disp.html('error: '+r.error); return; };
+					disp.html('<a href="javascript:;" class="ensel">'+(typeof(r.names)=='undefined'?'Выбрать':r.names[0])+'</a>');
+					if (typeof(r.types)!='undefined')
+						disp.append($('<a href="javascript:;" class="ensel" entype="'+r.types[r.types.length-1]+'">, '+r.types[r.types.length-1]+'</a>'));
+					init_ensel();
+				});
+			clearTimeout(typing_timer);
+		},1000);
 	});
 });
 </script>
