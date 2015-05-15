@@ -215,6 +215,8 @@ sub erview:Local
 		$data->{tables}->{$r->{table}}++;
 	};
 	$data->{newrow}->{text}=sprintf qq\<a href="/row/eredit?e1=$en&e2=$en&table=%s&redir=/rec/erview%%3Fen=$en">Новая строка</a>\,(sort {$data->{tables}->{$b} <=> $data->{tables}->{$a}} keys %{$data->{tables}})[0];
+
+	$data->{more}={text=>qq\<a href="/subject/$en">Просмотр</a>\} if 'субъект'~~$data->{entity}->{types};
 	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 
