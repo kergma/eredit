@@ -1,6 +1,7 @@
 package wf::Controller::ajapi;
 use Moose;
 use namespace::autoclean;
+use utf8;
 
 BEGIN { extends 'Catalyst::Controller'; }
 
@@ -26,6 +27,9 @@ sub index :Path :Args
 	my ( $self, $c , $f, @a) = @_;
 	my $r;
 	eval {no strict 'refs'; $r=$c->model->$f(@a)};
+	use Data::Dumper;
+	print Dumper $r;
+	$r={$f=>$r} if ref $r ne 'HASH';
 	%{$c->stash}=(%{$r//{}});
 	$c->forward('View::json');
 }

@@ -1,6 +1,7 @@
 package wf::Model::udb;
 use Moose;
 use namespace::autoclean;
+use utf8;
 
 extends 'Catalyst::Model';
 
@@ -406,7 +407,8 @@ sub cached_array_ref
 
 	my $md5=Digest::MD5->new;
 	$md5->add($opts->{cache_key}) if defined $opts->{cache_key};
-	$md5->add($q);
+	use Encode qw(encode_utf8);
+	$md5->add(encode_utf8($q));
 	$md5->add($_) foreach @values;
 	my $qkey=$md5->hexdigest();
 
@@ -564,7 +566,7 @@ sub connect
 		)),
 		wf->config->{dbusername},
 		wf->config->{dbauth},
-		{InactiveDestroy=>1,pg_enable_utf8=>0}
+		{InactiveDestroy=>1}
 	);
 	Catalyst::Exception->throw($DBI::errstr) unless $dbh;
 	wf::Model::udb::init_schema();
