@@ -118,6 +118,22 @@ sub entities
 	return read_table($self,qq/select * from er.entities(?,?,?,?,?)/,$f->{en},$f->{name},$f->{type},$f->{domain},$f->{limit});
 }
 
+sub tree_path
+{
+	my ($self, $en)=(shift,shift);
+	my $relations=[@_];
+	use Data::Dumper;
+	print "here\n";
+	print Dumper $en,$relations;
+	return cached_array_ref($self,qq\
+select t.path[array_length(t.path,1)] as en, (array_agg(coalesce(s.t,a.t) order by length(s.t)))[1] as name from er.tree_from(?::int8,?::int8[],true) t
+left join subjects s on s.e1=t.path[array_length(t.path,1)] and s.r=any(er.keys('наименование%'))
+left join authorities a on a.e1=t.path[array_length(t.path,1)] and a.r=any(er.keys('наименование%'))
+group by t.path
+order by t.path
+\,$en,$relations);
+}
+
 sub read_record
 {
 	my ($self,$id)=@_;
@@ -174,7 +190,7 @@ select coalesce(r."table",cx."table") as "table", coalesce(r.row,cx.row) as row,
 action,request,requester,resolve,resolver,resolution,note,
 coalesce(cx.e1::text,(select (u).value from unnest(data) as u where (u).column='e1')) as c_e1, cx.name1 as c_name, cx.r as c_r, cx.key as c_key, cx.domain as c_domain, coalesce(cx.e2::text,(select (u).value from unnest(data) as u where (u).column='e2')) as c_e2, cx.name2 as c_name2, cx.value as c_value
 from r full join cx on cx.table=r.table and cx.row=r.row
-order by r.value is null, r.key, r.name2, r.name1
+order by r.value is null, r.key, r.row
 /,{Slice=>{}},$id);
 ;
 }
