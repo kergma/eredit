@@ -45,47 +45,22 @@ sub ACCEPT_CONTEXT
 	return $self;
 }
 
+sub mm
+{
+	my ($self)=@_;
+	return [
+		{t=>'Просмотр',i=>[{t=>'Записи',a=>'/rec/search'},{t=>'Записи ER',a=>'/rec/ersearch'},{t=>'Данные ИС',a=>'/sys/isdata'}]},
+		{t=>'Создать',i=>[{t=>'Запись',a=>'/rec/create'},{t=>'Запись ER',a=>'/rec/ercreate'},{t=>'Ключ PKI',a=>'/pki/genpkey'},{t=>'Запрос сертификата PKI',a=>'/pki/crreq'},{t=>'Сертификат PKI',a=>'/pki/crcert'},{t=>'Импорт объекта PKI',a=>'/pki/import'}]},
+		{t=>'Синхронизация',i=>[{t=>'Статус',a=>'/sync/status'},{t=>'Выполнить',a=>'/sync/perform'}]},
+	];
+}
+
 sub arrayref;
 sub arrayref($)
 {
 	my ($v)=@_;
 	return $v if ref $v eq 'ARRAY';
 	return [$v];
-}
-
-sub authinfo_password
-{
-	my ($self,$authinfo)=@_;
-
-	my $r=db::selectrow_hashref(qq{
-select p.t as passw,a.e2 as soid from systems a
-join systems n on n.r=er.key('имя входа') and n.e1=a.e1
-join systems p on p.r=er.key('пароль ct') and p.e1=a.e1
-where a.r=er.key('учётная запись сотрудника') and (n.t=? or a.e1=?)
-},undef,$authinfo->{username},$authinfo->{uid});
-	$r or return undef;
-	$r->{passw}="***" if $authinfo->{uid} and !$authinfo->{username};
-	$authinfo->{soid}=$r->{soid};
-	$authinfo->{password}=$r->{passw};
-	return $r->{passw};
-}
-
-
-
-sub authinfo_data
-{
-	my ($self,$authinfo)=@_;
-
-	my %data=%$authinfo;
-	$data{entity}=$self->entity($authinfo->{soid});
-	$data{full_name}=$data{entity}->{names}->[0];
-	my $r=$self->array_ref(qq/
-select path[array_length(path,1)] as role,a.t role_t from er.tree_from(?,array[er.key('входит в состав полномочия'),-er.key('уполномочен на')]) t
-left join authorities a on a.e1=t.path[array_length(t.path,1)] and a.r=any(er.keys('наименование%','полномочия'))
-/,$authinfo->{soid})
-;
-	$data{roles}=[map {$_->{role},$_->{role_t}} @$r];
-	return \%data;
 }
 
 sub search_records
@@ -551,64 +526,4 @@ where def_is.r='наименование ИС'
 \);
 }
 
-
-package db;
-
-my $dbh;
-
-for my $funame (qw/do prepare selectrow_arrayref selectrow_hashref selectall_arrayref/)
-{
-	no strict 'refs';
-	*$funame=sub {
-		db::connect() unless $dbh;
-		my $rv=$dbh->$funame(@_);
-		#Catalyst::Exception->throw($DBI::errstr) if $DBI::errstr;
-		return $rv;
-	};
-}
-
-sub errstr
-{
-	return $DBI::errstr;
-}
-
-sub connect
-{
-	$dbh||=DBI->connect(
-		"dbi:Pg:".join(';',grep {$_} (
-			wf->config->{dbhost}?"host=".wf->config->{dbhost}:undef,
-			wf->config->{dbport}?"port=".wf->config->{dbport}:undef,
-			wf->config->{dbname}?"dbname=".wf->config->{dbname}:undef,
-		)),
-		wf->config->{dbusername},
-		wf->config->{dbauth},
-		{InactiveDestroy=>1}
-	);
-	Catalyst::Exception->throw($DBI::errstr) unless $dbh;
-	wf::Model::udb::init_schema();
-}
-
-
-sub selectval_scalar
-{
-	my $row=db::selectrow_arrayref(@_);
-	return undef unless $row;
-	return $row->[0];
-}
-
-sub setv1
-{
-	my ($v1,$r,$v2)=@_;
-	
-	db::do("update data set v1=? where r =? and v2=?",undef,$v1,$r,$v2)>0
-		or db::do("insert into data (v1,r,v2) values (?,?,?)",undef,$v1,$r,$v2);
-}
-
-sub setv2
-{
-	my ($v1,$r,$v2)=@_;
-	
-	db::do("update data set v2=? where r =? and v1=?",undef,$v2,$r,$v1)>0
-		or db::do("insert into data (v1,r,v2) values (?,?,?)",undef,$v1,$r,$v2);
-}
 1;
