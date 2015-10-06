@@ -95,11 +95,9 @@ sub entities
 
 sub tree_path
 {
-	my ($self, $en)=(shift,shift);
+	my ($self, $en,$p)=(shift,shift,pop);
+	undef $en if $en eq 'undefined';
 	my $relations=[@_];
-	use Data::Dumper;
-	print "here\n";
-	print Dumper $en,$relations;
 	return cached_array_ref($self,qq\
 select t.path[array_length(t.path,1)] as en, (array_agg(coalesce(s.t,a.t) order by length(s.t)))[1] as name from er.tree_from(?::int8,?::int8[],true) t
 left join subjects s on s.e1=t.path[array_length(t.path,1)] and s.r=any(er.keys('наименование%'))
@@ -107,6 +105,31 @@ left join authorities a on a.e1=t.path[array_length(t.path,1)] and a.r=any(er.ke
 group by t.path
 order by t.path
 \,$en,$relations);
+}
+
+sub tree_items
+{
+	my ($self, $en,$p)=(shift,shift,pop);
+	undef $en if $en eq 'undefined';
+	my $relations=[@_];
+	my $names_selector=db::selectval_scalar('select er.names_selector()');
+	my $types_filter='';
+	$p->{types}=$p->{'types[]'} if $p->{'types[]'};
+	$p->{types}=[$p->{types}] if ref $p->{types} ne 'ARRAY';
+	$types_filter='join er.typing y on y.keyid=d.r and type=any(?)' if $p->{types};
+	my $from=qq\from (select path[array_length(path,1)] as en, null from er.tree_from(?::int8,?::int8[],false,1,1) ) r\;
+	$from=qq\from er.roots(?::int8[]) r(en,names)\ unless $en;
+
+	return cached_array_ref($self,qq\
+select r.en,
+($names_selector)[1] as name
+$from
+join ( select * from subjects union select * from authorities ) d on r.en in (d.e1,d.e2)
+$types_filter
+left join er.naming n on n.keyid=d.r
+group by r.en
+order by 2
+\,$en||(),$relations,$p->{types}||());
 }
 
 sub read_record
