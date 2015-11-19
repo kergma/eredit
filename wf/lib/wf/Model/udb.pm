@@ -99,7 +99,7 @@ sub tree_path
 	undef $en if $en eq 'undefined';
 	my $relations=[@_];
 	return cached_array_ref($self,qq\
-select t.path[array_length(t.path,1)] as en, (array_agg(coalesce(s.t,a.t) order by length(s.t)))[1] as name from er.tree_from(?::int8,?::int8[],true) t
+select t.path[array_length(t.path,1)]::text as en, (array_agg(coalesce(s.t,a.t) order by length(s.t)))[1] as name from er.tree_from(?::int8,?::int8[],true) t
 left join subjects s on s.e1=t.path[array_length(t.path,1)] and s.r=any(er.keys('наименование%'))
 left join authorities a on a.e1=t.path[array_length(t.path,1)] and a.r=any(er.keys('наименование%'))
 group by t.path
@@ -121,7 +121,7 @@ sub tree_items
 	$from=qq\from er.roots(?::int8[]) r(en,names)\ unless $en;
 
 	return cached_array_ref($self,qq\
-select r.en,
+select r.en::text,
 ($names_selector)[1] as name
 $from
 join ( select * from subjects union select * from authorities ) d on r.en in (d.e1,d.e2)
