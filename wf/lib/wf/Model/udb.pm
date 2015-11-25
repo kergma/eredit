@@ -107,12 +107,12 @@ sub tree_items
 	my $path=[$en];
 	$path=db::selectcol_arrayref(qq\select t.path[array_length(t.path,1)] as en from er.tree_from(?::int8,?::int8[],true) t order by t.path\,undef,$en,$relations) if $p->{descend};
 	push @$path, $en unless $p->{descend};
+	push @$path, 'root' unless @$path;
 	DDP::p $path;
 	my $r=[];
 	do
 	{
 		my $e=shift @$path;
-		$e='null' unless $e;
 		my $c=$path->[0];
 		my $i=cached_array_ref($self,qq\
 select r.en,
