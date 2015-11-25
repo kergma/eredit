@@ -112,8 +112,8 @@ sub tree_items
 	do
 	{
 		my $e=shift @$path;
+		$e='null' unless $e;
 		my $c=$path->[0];
-		print "here $e $c\n";
 		my $i=cached_array_ref($self,qq\
 select r.en,
 ($names_selector)[1] as name
@@ -124,11 +124,9 @@ left join er.naming n on n.keyid=d.r
 group by r.en
 order by 2
 \,$c||(),$relations,$p->{types}||());
-		print "there\n";
 		push @$r,{'en'=>$e, $e => $i};
-		DDP::p $i;
 	} while @$path and $p->{descend};
-	#DDP::p $r;
+	DDP::p $r;
 	return $r;
 }
 
