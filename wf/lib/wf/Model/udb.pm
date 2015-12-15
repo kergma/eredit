@@ -104,29 +104,33 @@ sub tree_items
 	$p->{types}=[$p->{types}] if ref $p->{types} ne 'ARRAY';
 	$types_filter='join er.typing y on y.keyid=d.r and type=any(?)' if $p->{types};
 
-	my $path=[$en];
-	$path=db::selectcol_arrayref(qq\select t.path[array_length(t.path,1)] as en from er.tree_from(?::int8,?::int8[],true) t order by t.path\,undef,$en,$relations) if $p->{descend};
-	push @$path, $en unless $p->{descend};
-	push @$path, 'root' unless @$path;
-	DDP::p $path;
+	my $path=[];
+	$path=db::selectall_arrayref(qq\
+with s as (
+select t.path[array_length(t.path,1)-1] as en, t.path[array_length(t.path,1)] as pa, array_length(t.path,1) as o,path from er.tree_from(?::int8,?::int8[],true) t order by t.path
+),
+z as (
+select * from s where en is not null union
+select pa,null,o+1,path from s s2 where not exists (select 1 from s where s.en=s2.pa)
+)
+select en,(array_agg_notnull(pa order by o))[1] as parent from z group by en order by array_agg(o order by o)
+\,{Slice=>{}},$en,$relations) if $p->{descend};
+	unshift @$path,{en=>'x',parent=>$en};
 	my $r=[];
-	do
+	foreach my $x (@$path)
 	{
-		my $e=shift @$path;
-		my $c=$path->[0];
 		my $i=cached_array_ref($self,qq\
 select r.en,
 ($names_selector)[1] as name
-@{[$c?qq*from (select path[array_length(path,1)] as en, null from er.tree_from(?::int8,?::int8[],false,1,1) ) r*:qq*from er.roots(?::int8[]) r(en,names)*]}
+@{[$x->{parent}?qq*from (select path[array_length(path,1)] as en, null from er.tree_from(?::int8,?::int8[],false,1,1) ) r*:qq*from er.roots(?::int8[]) r(en,names)*]}
 join ( select * from subjects union select * from authorities ) d on r.en in (d.e1,d.e2)
 $types_filter
 left join er.naming n on n.keyid=d.r
 group by r.en
 order by 2
-\,$c||(),$relations,$p->{types}||());
-		push @$r,{'en'=>$e, $e => $i};
-	} while @$path and $p->{descend};
-	DDP::p $r;
+\,$x->{parent}||(),$relations,$p->{types}||());
+		push @$r,{'en'=>$x->{en}, $x->{en} => $i};
+	};
 	return $r;
 }
 
