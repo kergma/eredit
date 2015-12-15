@@ -192,10 +192,20 @@ order by r.value is null, r.key, r.row
 }
 sub request_update
 {
-	my ($self,$r,$value)=@_;
+	my ($self,$a)=@_;
+	my ($k,$r,$v)=($a->{key},$a->{rr},$a->{value});
 	my $d;
-	$d=['t',undef,$value] if $r->{r}~~[2400924095923474560,2400924095940272256,2400924095940276352];
-	$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$r->{r}],['e2',undef,$value]] if $r->{r}~~[2400924095923462272,2401518747775791232];
+	if ($k->[4])
+	{
+		$v=[$v] unless ref $v eq 'ARRAY';
+		shift @$v while $v->[0] eq '<выбрать>';
+		$v=shift @$v;
+		$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$r->{r}],['e2',undef,$v]];
+	}
+	else
+	{
+		$d=['t',undef,$v];
+	};
 	db::do('delete from changes where "table"=? and "row"=? and request=?',undef,$r->{table},$r->{row},$r->{request});
 	return db::selectall_arrayref(q/insert into changes ("table","row",action,request,requester,data) select ?::text,?::int,'update',coalesce(?::int8,generate_id()),?::int8,array_agg((e[1],e[2],e[3])::er.row) from unnest_md(?::text[][]) as e returning */,{Slice=>{}},$r->{table},$r->{row},undef,$cc->user->{entity}->{en},$d);
 }
@@ -208,10 +218,21 @@ sub request_delete
 sub request_insert
 {
 	my ($self,$key,$value)=@_;
+	my ($self,$a)=@_;
+	my ($k,$v)=($a->{key},$a->{value});
 	my $d;
-	$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$key->[0]],['t',undef,$value]] if $key->[0]~~[2400924095923474560,2400924095940272256,2400924095940276352];
-	$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$key->[0]],['e2',undef,$value]] if $key->[0]~~[2400924095923462272,2401518747775791232];
-	return db::selectall_arrayref(q/insert into changes ("table",action,request,requester,data) select ?::text,'insert',coalesce(?::int8,generate_id()),?::int8,array_agg((e[1],e[2],e[3])::er.row) from unnest_md(?::text[][]) as e returning */,{Slice=>{}},$key->[3],undef,$cc->user->{entity}->{en},$d);
+	if ($k->[4])
+	{
+		$v=[$v] unless ref $v eq 'ARRAY';
+		shift @$v while $v->[0] eq '<выбрать>';
+		$v=shift @$v;
+		$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$k->[0]],['e2',undef,$v]];
+	}
+	else
+	{
+		$d=[['e1',undef,$cc->user->{entity}->{en}],['r',undef,$k->[0]],['t',undef,$v]];
+	};
+	return db::selectall_arrayref(q/insert into changes ("table",action,request,requester,data) select ?::text,'insert',coalesce(?::int8,generate_id()),?::int8,array_agg((e[1],e[2],e[3])::er.row) from unnest_md(?::text[][]) as e returning */,{Slice=>{}},$k->[3],undef,$cc->user->{entity}->{en},$d);
 }
 sub cancel_request
 {
