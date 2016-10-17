@@ -221,7 +221,6 @@ sub request_delete
 }
 sub request_insert
 {
-	my ($self,$key,$value)=@_;
 	my ($self,$a)=@_;
 	my ($k,$v)=($a->{key},$a->{value});
 	my $d;
