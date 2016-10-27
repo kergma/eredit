@@ -1,4 +1,4 @@
-package eredit::rec;
+package eredit::Controller::er;
 use Moose;
 use namespace::autoclean;
 use utf8;
@@ -30,7 +30,7 @@ sub index :Path :Args(0) {
     $c->response->body('Matched wf::Controller::rec in rec.');
 }
 
-sub ersearch:Path('er/search') :Form
+sub search:Local :Form
 {
 	my ( $self, $c ) = @_;
 
@@ -54,7 +54,7 @@ sub ersearch:Path('er/search') :Form
 	$form->method('post');
 
 	$form->field(name => $_, value=>$p->{$_}, type=>'hidden') foreach grep {my $p=$_;! grep {$_ eq $p} $form->fields} keys %$p;
-	
+
 	$_||=undef foreach values %$p;
 
 	$c->stash->{data}={entities=>$model->entities($p)};
@@ -78,108 +78,8 @@ sub ersearch:Path('er/search') :Form
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
 
 }
-sub search:Local :Form
-{
-	my ( $self, $c ) = @_;
-
-	my $model=$c->model;
-
-	my $form=$self->formbuilder;
-	$c->stash->{heading}='Выбор записи';
-
-	$form->selectnum(0);
-	$form->field(name => 'selection', type=>'hidden');
-	$form->field(name => 'recid', label=>'Запись');
-	$form->field(name => 'defvalue', label=>'Определение');
-	$form->field(name => 'rectype', label=>'Тип', options => $model->rectypes());
-	$form->field(name => 'limit', label=>'Ограничить',value=>3000);
-	$form->submit('Выбрать');
-	$form->method('post');
-
-	my %filter=(_submitted=>0,_submit=>0);
-	$filter{recid}=$form->field('recid');
-	$filter{defvalue}=$form->field('defvalue');
-	$filter{rectype}=$form->field('rectype')//'';
-	$filter{rectype}=['Ключ PKI','Запрос сертификата PKI','Сертификат PKI'] if $filter{rectype} eq 'Объект PKI';
-	$filter{related}=$c->req->{parameters}->{related} if $c->req->{parameters}->{related};
-	$filter{limit}=$form->field('limit');
-
-	$form->field(name => $_, value=>$c->req->{parameters}->{$_}, type=>'hidden') foreach grep {!defined $filter{$_}} keys %{$c->req->{parameters}};
-
-	$c->stash->{data}={records=>$model->search_records(\%filter),f=>\%filter};
-	$c->stash->{data}->{records}->{display}= {
-		recref=>'Определение',
-		rectype=>'Тип',
-		recid=>'Запись',
-		order=>[qw/recref rectype recid/],
-	};
-	my $selaction=$c->req->{parameters}->{selaction};
-	if ($selaction)
-	{
-		$_->{recref}=qq\<a href="javascript:;" onclick="f=document.forms[0];f.selection.value='$_->{recid}';f.action='$selaction';f.submit()">$_->{defvalue}</a>\ foreach @{$c->stash->{data}->{records}->{rows}};
-	}
-	else
-	{
-		$_->{recref}=sprintf qq(<a href="/rec/view?id=%s">%s</a>),$_->{recid}//'',$_->{defvalue}//'&ltне определено&gt' foreach @{$c->stash->{data}->{records}->{rows}};
-	};
-	$c->stash->{data}->{p}=$c->req->{parameters};
-	$c->stash->{display}={order=>[qw/formbuilder data/]};
-
-}
-
-sub edit:Local:Form
-{
-	my ( $self, $c ) = @_;
-
-	my $model=$c->model;
-
-	my $form=$self->formbuilder;
-	$c->stash->{heading}='Изменение записи';
-	my $data=$c->stash->{data}={rec=>$model->read_record($c->req->parameters->{id})};
-
-}
 
 sub view:Local
-{
-	my ( $self, $c ) = @_;
-
-	my $model=$c->model;
-	my $id=$c->req->parameters->{id};
-
-	my $data=$c->stash->{data}={
-		id=>{text=>$id},
-		rec=>{
-			rows=>$model->read_record($id),
-			display=>{
-				v1=>'Значение',
-				r=>'Связь',
-				v2=>'Значение',
-				c1=>'Имя/значение',
-				c2=>'Имя/значение',
-				e=>'Ред',
-				order=>[qw/e c1 c2/]
-			},
-		},
-		newrow=>{
-			text=>qq\<a href="/row/create?v2=$id&redir=/rec/view%3Fid=$id">Новая строка</a>\
-		},
-		display=>{order=>[qw/id rec newrow more/]},
-	};
-	($data->{rec}->{def}->{defvalue},$data->{rec}->{def}->{rectype})=$model->recdef($id);
-	$c->stash->{heading}=sprintf "%s (%s)",$data->{rec}->{def}->{defvalue}//'',$data->{rec}->{def}->{rectype}//'';
-	foreach my $r (@{$data->{rec}->{rows}})
-	{
-		($r->{c1},$r->{c2})=grep {$_} (
-			$r->{v1} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v1}">$r->{refdef}</a>\:$r->{v1},
-			$r->{r},
-			$r->{v2} && $r->{refdef}?qq\<a href="/rec/view?id=$r->{v2}">$r->{refdef}</a>\:$r->{v2},
-		);
-		$r->{e}=qq\<a href="/row/edit?id=$r->{id}&redir=/rec/view%3Fid=$id">$r->{id}</a>\;
-	};
-	$data->{more}={text=>qq\<a href="/pki/view?record=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
-}
-
-sub erview:Path('er/view')
 {
 	my ( $self, $c ) = @_;
 
@@ -225,20 +125,98 @@ sub create:Local
 {
 	my ( $self, $c ) = @_;
 
-	my $model=$c->model;
-	my $id=$model->newid();
+	my $model=$c->model('er');
+	my $id=$model->generate_id();
 	$c->response->headers->header(cache_control => "no-cache");
-	$c->response->redirect("/rec/view?id=$id",302);
+	$c->response->redirect("view?en=$id",302);
 }
 
-sub ercreate:Local
+sub edit :Local
 {
 	my ( $self, $c ) = @_;
 
-	my $model=$c->model;
-	my $id=$model->generate_id();
-	$c->response->headers->header(cache_control => "no-cache");
-	$c->response->redirect("/rec/erview?en=$id",302);
+	my $m=$c->model('er');
+	my $p=$c->req->parameters;
+	my $table=ref $p->{table} eq 'ARRAY'?$p->{table}->[0]:$p->{table};
+	$p->{$_}=$p->{$_}->[-1] foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;
+	$p->{$p->{seltarget}}=$p->{selection} if $p->{seltarget};
+
+	$c->stash->{heading}='Изменение строки';
+	$c->stash->{heading}='Создание строки' unless $p->{row};
+
+	if (($p->{_submit}//'') eq 'Вернуться')
+	{
+		$c->response->redirect($p->{redir});
+		return;
+	};
+	if ($c->flash->{row_update_success})
+	{
+		$c->stash->{success}=$c->flash->{row_update_success};
+		delete $c->flash->{row_update_success};
+	};
+	my $row =$m->row($table,$p->{row})//[];
+	$c->stash->{error}="строка $table: $p->{row} не существует" and return if $p->{row} and @$row<1;
+
+	my $storages=$m->storages();
+	if (@$row<1)
+	{
+		my $storage=(grep {$_->{table} eq $p->{table}} @$storages)[0];
+		$row=[{column=>'table',value=>$storage->{table}},map {{column=>$_}} @{$storage->{columns}}];
+	};
+
+	$c->stash->{r}=$row;
+	$c->stash->{display}->{order}=[qw/row error success confirm/];
+	my $form=$c->stash->{row}->{form}=CGI::FormBuilder->new(
+		method=>"post",
+		action=>"?$c->{request}->{env}->{QUERY_STRING}",
+		submit=>[grep {$_} ('Сохранить',defined $p->{row} && 'Удалить',$p->{redir}&&'Вернуться')],
+		fieldsubs=>1,
+		selectnum=>0
+	);
+
+	$p->{$_->{column}}//=$_->{value} foreach @$row;
+	foreach my $r (@$row)
+	{
+		$form->field(name=>$r->{column},label=>$r->{column}, value=>$p->{$r->{column}}, readonly=>$r->{column} eq 'row'||undef);
+		$form->field(name=>$r->{column}, renderer=>'ensel') if $r->{column}=~'^e\d+';
+		$form->field(name=>$r->{column}, renderer=>'keysel') if $r->{column} eq 'r';
+	};
+	$form->field(name=>'table',options=>[map {$_->{table}} @$storages], onchange=>'this.form.submit()');
+
+	if (($p->{_submit}//'') eq 'Сохранить' or ($p->{_submit}//'') eq 'Удалить')
+	{
+		$c->stash->{error}='не задана таблица строки' and return unless $p->{table};
+		my $message="Подтвердите сохранение изменений в строке $table:$p->{row}";
+		$message.=" с переносом в таблицу $p->{table}" if $table ne $p->{table};
+		$message="Подтвердите создание строки в таблице $p->{table}" unless $p->{row};
+		$message="Подтвердите удаление строки $table:$p->{row}" if $p->{_submit} eq 'Удалить';
+		$c->stash->{confirm}={
+			text=>[$message],
+			form=>CGI::FormBuilder->new(
+				method=>"post",
+				action=>"",
+				submit=>['Подтвердить','Отказаться'],
+				fieldsubs=>1
+			),
+		};
+		$p->{confirm_action}=$p->{_submit};
+		$c->stash->{confirm}->{form}->field(name=>$_,type=>'hidden',value=>$p->{$_}) foreach grep {$_!~/^_submit/} keys %$p;
+	};
+
+	if (($p->{_submit}//'') eq 'Подтвердить')
+	{
+		delete $p->{table} if $p->{confirm_action} eq 'Удалить';
+		my $rv=$m->row_update($row,$p);
+		$c->stash->{error}->{text}="Ошибка сохранения: ".db::errstr() unless $rv;
+		if ($rv)
+		{
+			$c->response->redirect($p->{redir}) if $p->{redir};
+			return if $p->{redir};
+			$c->response->redirect("?table=$rv->[-1]->{table}&row=$rv->[-1]->{row}");
+			$c->flash->{row_update_success}={text=>["Изменения сохранены",map{"$_->{table}:$_->{row} $_->{action}"} @$rv ]};
+			return;
+		};
+	};
 }
 =head1 AUTHOR
 

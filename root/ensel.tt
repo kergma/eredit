@@ -28,7 +28,7 @@ function init_ensel()
 		if (typeof($(this).attr("entype"))!='undefined') params.type=$(this).attr("entype");
 		var name=inp.val().trim();
 		if (!/^[0-9]+$/.test(name)) params.name=name;
-		var action="/rec/ersearch";
+		var action="search";
 		if (!$.isEmptyObject(params)) action=action+'?'+$.param(params);
 		form.attr("action",action);
 		form.submit();
