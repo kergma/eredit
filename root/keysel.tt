@@ -1,5 +1,5 @@
 [%# vim: set filetype=javascript: -%]
-[%PERL%]$stash->{f}->{keys}=$stash->{c}->model()->keys();[%END%]
+[%PERL%]$stash->{f}->{keys}=$stash->{c}->model('er')->keys();[%END%]
 [%f.key=f.keys.${f.value}%]
 [%UNLESS f.readonly%]
 <span class="keycont">

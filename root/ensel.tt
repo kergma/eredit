@@ -1,5 +1,5 @@
 [%# vim: set filetype=javascript: -%]
-[%PERL%]$stash->{f}->{entity}=$stash->{c}->model()->entity($stash->{f}->value);[%END%]
+[%PERL%]$stash->{f}->{entity}=$stash->{c}->model('er')->entity($stash->{f}->value);[%END%]
 [%UNLESS f.readonly%]
 <span class="encont">
 [%f.class="eninp"%]

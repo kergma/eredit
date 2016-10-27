@@ -1,4 +1,4 @@
-package wf::Controller::rec;
+package eredit::rec;
 use Moose;
 use namespace::autoclean;
 use utf8;
@@ -30,11 +30,11 @@ sub index :Path :Args(0) {
     $c->response->body('Matched wf::Controller::rec in rec.');
 }
 
-sub ersearch:Local :Form
+sub ersearch:Path('er/search') :Form
 {
 	my ( $self, $c ) = @_;
 
-	my $model=$c->model;
+	my $model=$c->model('er');
 
 	$c->stash->{heading}='Выбор записи';
 
@@ -72,7 +72,7 @@ sub ersearch:Local :Form
 	}
 	else
 	{
-		$_->{nameref}=sprintf qq\<a href="/rec/erview?en=%s" title="%s">%s</a>\,$_->{en},$_->{namehint},$_->{name} foreach @{$c->stash->{data}->{entities}->{rows}};
+		$_->{nameref}=sprintf qq\<a href="view?en=%s" title="%s">%s</a>\,$_->{en},$_->{namehint},$_->{name} foreach @{$c->stash->{data}->{entities}->{rows}};
 	};
 	$c->stash->{data}->{p}=$c->req->{parameters};
 	$c->stash->{display}={order=>[qw/formbuilder data/]};
@@ -179,11 +179,11 @@ sub view:Local
 	$data->{more}={text=>qq\<a href="/pki/view?record=$id">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;
 }
 
-sub erview:Local
+sub erview:Path('er/view')
 {
 	my ( $self, $c ) = @_;
 
-	my $model=$c->model;
+	my $model=$c->model('er');
 	my $en=$c->req->parameters->{en};
 
 	my $data=$c->stash->{data}={
@@ -208,14 +208,14 @@ sub erview:Local
 	foreach my $r (@{$data->{rec}->{rows}})
 	{
 		($r->{c1},$r->{c2})=grep {$_} (
-			$r->{e1}==$en?'':sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e1},$r->{name1}||'&ltбез имени&gt'),
+			$r->{e1}==$en?'':sprintf(qq\<a href="view?en=%s">%s</a>\,$r->{e1},$r->{name1}||'&ltбез имени&gt'),
 			$r->{key},
-			$r->{e2}?sprintf(qq\<a href="/rec/erview?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
+			$r->{e2}?sprintf(qq\<a href="view?en=%s">%s</a>\,$r->{e2},$r->{name2}||'&ltбез имени&gt'):$r->{value}
 		);
-		$r->{e}=qq\<a href="/row/eredit?row=$r->{row}&table=$r->{table}&redir=/rec/erview%3Fen=$en">$r->{table}:$r->{row}</a>\;
+		$r->{e}=qq\<a href="edit?row=$r->{row}&table=$r->{table}&redir=view%3Fen=$en">$r->{table}:$r->{row}</a>\;
 		$data->{tables}->{$r->{table}}++;
 	};
-	$data->{newrow}->{text}=sprintf qq\<a href="/row/eredit?e1=$en&e2=$en&table=%s&redir=/rec/erview%%3Fen=$en">Новая строка</a>\,(sort {$data->{tables}->{$b} <=> $data->{tables}->{$a}} keys %{$data->{tables}})[0];
+	$data->{newrow}->{text}=sprintf qq\<a href="edit?e1=$en&e2=$en&table=%s&redir=view%%3Fen=$en">Новая строка</a>\,(sort {$data->{tables}->{$b} <=> $data->{tables}->{$a}} keys %{$data->{tables}})[0];
 
 	$data->{more}={text=>qq\<a href="/subject/$en">Просмотр</a>\} if 'субъект'~~$data->{entity}->{types};
 	$data->{more}={text=>qq\<a href="/pki/view?record=$en">Просмотр</a>\} if $data->{rec}->{def}->{rectype} =~ /PKI$/;

@@ -1,4 +1,4 @@
-package wf::Controller::row;
+package eredit::row;
 use Moose;
 use namespace::autoclean;
 use utf8;
@@ -30,11 +30,11 @@ sub index :Path :Args(0) {
 }
 
 
-sub eredit :Local
+sub eredit :Path('er/edit')
 {
 	my ( $self, $c ) = @_;
 
-	my $m=$c->model;
+	my $m=$c->model('er');
 	my $p=$c->req->parameters;
 	my $table=ref $p->{table} eq 'ARRAY'?$p->{table}->[0]:$p->{table};
 	$p->{$_}=$p->{$_}->[-1] foreach grep {ref $p->{$_} eq 'ARRAY'} keys %$p;

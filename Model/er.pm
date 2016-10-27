@@ -1,4 +1,4 @@
-package wf::Model::udb;
+package eredit::Model::er;
 use Moose;
 use namespace::autoclean;
 use utf8;
