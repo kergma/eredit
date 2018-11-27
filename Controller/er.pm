@@ -34,6 +34,13 @@ sub search:Local :Form
 {
 	my ( $self, $c ) = @_;
 
+	unless ($c->check_any_user_role('er edit'))
+	{
+		$c->stash->{error}=$c->loc('Not authorized');
+		$c->stash->{display}->{order}=['error'];
+		return;
+	};
+
 	my $model=$c->model('er');
 
 	$c->stash->{heading}='Выбор записи';
@@ -83,6 +90,13 @@ sub view:Local
 {
 	my ( $self, $c ) = @_;
 
+	unless ($c->check_any_user_role('er edit'))
+	{
+		$c->stash->{error}=$c->loc('Not authorized');
+		$c->stash->{display}->{order}=['error'];
+		return;
+	};
+
 	my $model=$c->model('er');
 	my $en=$c->req->parameters->{en};
 
@@ -124,6 +138,12 @@ sub view:Local
 sub create:Local
 {
 	my ( $self, $c ) = @_;
+	unless ($c->check_any_user_role('er edit'))
+	{
+		$c->stash->{error}=$c->loc('Not authorized');
+		$c->stash->{display}->{order}=['error'];
+		return;
+	};
 
 	my $model=$c->model('er');
 	my $id=$model->generate_id();
@@ -134,6 +154,12 @@ sub create:Local
 sub edit :Local
 {
 	my ( $self, $c ) = @_;
+	unless ($c->check_any_user_role('er edit'))
+	{
+		$c->stash->{error}=$c->loc('Not authorized');
+		$c->stash->{display}->{order}=['error'];
+		return;
+	};
 
 	my $m=$c->model('er');
 	my $p=$c->req->parameters;
